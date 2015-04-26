@@ -131,19 +131,24 @@ void ProxySensor( void *pvParameters ) {
 		//UARTprintf( "PortD_0_A,_B: %d, %d\n", PortD_0_A, PortD_0_B );
 	*/
 
-		TimerEnable( TIMER0_BASE, TIMER_A );						// Starts the timer counting down.
-		GPIOPinWrite( GPIO_PORTD_BASE, GPIO_PIN_1, 0x02 );
-		SysCtlDelay( 16667 * 5 );	
-		GPIOPinWrite( GPIO_PORTD_BASE, GPIO_PIN_1, 0x00 );
-		signal_send_termination = TimerValueGet( TIMER0_BASE, TIMER_A );
-		SysCtlDelay( 3 );											// Wait here for the 0 value to be written to pin 1 (output).
+		TimerEnable( TIMER0_BASE, TIMER_A );								// Starts the timer counting down.
+		vTaskDelay( 100 );													// I don't know if enabling the timer takes a moment, so I'm
+					// playing safe. This also gives FreeRTOS a moment to tend to other things it might want to do.
+		GPIOPinWrite( GPIO_PORTD_BASE, GPIO_PIN_1, 0x02 );					// Begins 1 signal output.
+		SysCtlDelay( 16667 * 5 );											// Waits 5ms, the length of typical PING sensor signal.
+		GPIOPinWrite( GPIO_PORTD_BASE, GPIO_PIN_1, 0x00 );					// After wait, drops signal to 0.
+		signal_send_termination = TimerValueGet( TIMER0_BASE, TIMER_A );	// Records time that the transmit signal ended.
+		SysCtlDelay( 2 );													// Wait here for the 0 value to be written to pin 1 (output).
 
 		// Waits here for the return signal from the sensor. Sensor replies with 1's.
 		while ( GPIOPinRead( GPIO_PORTD_BASE, GPIO_PIN_0 ) == 0 ) {
+			// Records time that low-high RX occurred. This is when the RX signal starts.
 			signal_receive_start = TimerValueGet( TIMER0_BASE, TIMER_A );
 		}
 		
+		// Waits here for RX signal to end. Signal drops back to 0.
 		while ( GPIOPinRead( GPIO_PORTD_BASE, GPIO_PIN_0 ) == 1 ) {
+			// Records time that high-low RX occurred. This is when the RX signal ends.
 			signal_receive_end = TimerValueGet( TIMER0_BASE, TIMER_A ) - signal_sensor_start;
 		}
 
@@ -151,6 +156,8 @@ void ProxySensor( void *pvParameters ) {
 		UARTprintf( "Interim, response signal : %d, %d\n", 
 			signal_receive_start - signal_send_termination, 
 			signal_receive_end - signal_receive-start );
+			
+		vTaskDelay( 100 );
 
 
 		/*
