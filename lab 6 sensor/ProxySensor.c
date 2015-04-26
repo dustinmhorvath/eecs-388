@@ -171,7 +171,11 @@ void ProxySensor( void *pvParameters ) {
 			}
 		}
 		
-		
+		if(NegEdgeTimeSampleIdx >= MaxNbrEdgeTimeSamples){
+			for( int i = 0; i < MaxNbrEdgeTimeSamples; i++){
+				UARTprintf( "Recorded times: %d, %d\n", i, NegEdgeTimeSamples[i] );
+			}
+		}
 	
 	}
 
