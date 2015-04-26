@@ -115,7 +115,7 @@ void ProxySensor( void *pvParameters ) {
 		vTaskDelay( Delay_10mS );
 	*/
 	
-	//
+	/*
 		// TIMER TEST BLOCK
 		TimerLoadSet( TIMER0_BASE, TIMER_A, 50000 );				// Load initial Timer value. This has been changed to start high and count down.
 		TimerEnable( TIMER0_BASE, TIMER_A );						// Enable (Start) Timer
@@ -129,11 +129,31 @@ void ProxySensor( void *pvParameters ) {
 		SysCtlDelay( 2 );											// Delay 6 cycles
 		PortD_0_B = GPIOPinRead( GPIO_PORTD_BASE, GPIO_PIN_0 );
 		//UARTprintf( "PortD_0_A,_B: %d, %d\n", PortD_0_A, PortD_0_B );
-	//
+	*/
 
+		TimerEnable( TIMER0_BASE, TIMER_A );						// Starts the timer counting down.
+		GPIOPinWrite( GPIO_PORTD_BASE, GPIO_PIN_1, 0x02 );
+		SysCtlDelay( 16667 * 5 );	
+		GPIOPinWrite( GPIO_PORTD_BASE, GPIO_PIN_1, 0x00 );
+		signal_send_termination = TimerValueGet( TIMER0_BASE, TIMER_A );
+		SysCtlDelay( 3 );											// Wait here for the 0 value to be written to pin 1 (output).
+
+		// Waits here for the return signal from the sensor. Sensor replies with 1's.
+		while ( GPIOPinRead( GPIO_PORTD_BASE, GPIO_PIN_0 ) == 0 ) {
+			signal_receive_start = TimerValueGet( TIMER0_BASE, TIMER_A );
+		}
 		
-	
-		
+		while ( GPIOPinRead( GPIO_PORTD_BASE, GPIO_PIN_0 ) == 1 ) {
+			signal_receive_end = TimerValueGet( TIMER0_BASE, TIMER_A ) - signal_sensor_start;
+		}
+
+		TimerDisable( TIMER0_BASE, TIMER_A );						// Shuts the timer off so that it can be started at its load value.
+		UARTprintf( "Interim, response signal : %d, %d\n", 
+			signal_receive_start - signal_send_termination, 
+			signal_receive_end - signal_receive-start );
+
+
+		/*
 		//
 		// Now the code to capture the data. We'll capture the high-to-low
 		// transition time of the data signal. A short interval indicates
@@ -166,16 +186,19 @@ void ProxySensor( void *pvParameters ) {
 			NegEdgeTimeSamples[NegEdgeTimeSampleIdx] = TimerValueGet( TIMER0_BASE, TIMER_A );
 			//
 			// Wait for HIGH-TO-LOW transition.
-			//
+			// This marks the end of the signal transmission
 			while ( GPIOPinRead( GPIO_PORTD_BASE, GPIO_PIN_0 ) == 1 ) {
 			}
 		}
 		
+		
+		// SEND all of the recorded measurements over UART to the host. This only runs once after they've all finished.
 		if(NegEdgeTimeSampleIdx >= MaxNbrEdgeTimeSamples){
 			for( int i = 0; i < MaxNbrEdgeTimeSamples; i++){
 				UARTprintf( "Recorded times: %d, %d\n", i, NegEdgeTimeSamples[i] );
 			}
 		}
+	*/
 	
 	}
 
