@@ -100,6 +100,9 @@ void ProxySensor( void *pvParameters ) {
 	TimerLoadSet( TIMER0_BASE, TIMER_A, 50000 );
 	TimerPrescaleSet( TIMER0_BASE, TIMER_A, 9 );
 	
+	long int signal_send_termination;
+	long int signal_receive_start;
+	long int signal_receive_end;
 	
 	while ( 1 ) {
 	
@@ -133,7 +136,7 @@ void ProxySensor( void *pvParameters ) {
 
 		
 
-		/*
+	/*
 		//
 		// Now the code to capture the data. We'll capture the high-to-low
 		// transition time of the data signal. A short interval indicates
@@ -205,7 +208,7 @@ void ProxySensor( void *pvParameters ) {
 		// Send the values over Uart to the host. The timer isn't running now so sending time shouldn't be a problem.
 		UARTprintf( "Interim, response signal : %d, %d\n", 
 			signal_receive_start - signal_send_termination, 
-			signal_receive_end - signal_receive-start );
+			signal_receive_end - signal_receive_start );
 			
 		vTaskDelay( 100 );
 
