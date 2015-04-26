@@ -67,11 +67,13 @@ void ProxySensor( void *pvParameters ) {
 	//
 	// Configure PortD<1> as open drain output with 2 mA drive.
 	// PortD<1> will be used to initiate a measurement.
-	// Initialize PortD<1> to a 1 (constant 0x02)
+	// Initialize PortD<1> to a 0 (constant 0x00).
+	// For the PING sensor, input 0 is idle, while signal input 1 is used to signal the start of measuring.
 	//
 	GPIOPinTypeGPIOOutput( GPIO_PORTD_BASE, GPIO_PIN_1 );
 	GPIOPadConfigSet( GPIO_PORTD_BASE, GPIO_PIN_1, GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_OD );
-	GPIOPinWrite( GPIO_PORTD_BASE, GPIO_PIN_1, 0x02 );
+	GPIOPinWrite( GPIO_PORTD_BASE, GPIO_PIN_1, 0x00 );
+	
 	//
 	// Configure PortD<2> as standard output to supply power to the sensor.
 	// Initialize PortD<2> to 1 (constant 0x04)
@@ -101,28 +103,33 @@ void ProxySensor( void *pvParameters ) {
 	
 	while ( 1 ) {
 	
+	// Test blocks adapted from Dr. Minden's. These can be used to determine whether initialization has been completed
+	//  successfully, and to check if the hardware is functioning by design. One of the problems he ran into involved
+	//  the timer not having up-shot functionality, which has been changed here to periodic. Small changes have been made.
+	
 	/*
 		// PORT D TEST BLOCK
 		GPIOPinWrite( GPIO_PORTD_BASE, GPIO_PIN_1, 0x00 );		// Set signal to 0
-		vTaskDelay( Delay_5mS );
+		vTaskDelay( Delay_5mS );								// This was changed to a longer value, as the PING sensor expects ~5ms.
 		GPIOPinWrite( GPIO_PORTD_BASE, GPIO_PIN_1, 0x02 );		// Set signal to 1
 		vTaskDelay( Delay_10mS );
 	*/
 	
-	/*
+	//
 		// TIMER TEST BLOCK
-		TimerLoadSet( TIMER0_BASE, TIMER_A, 0xFFFF );				// Load initial Timer value
+		TimerLoadSet( TIMER0_BASE, TIMER_A, 50000 );				// Load initial Timer value. This has been changed to start high and count down.
 		TimerEnable( TIMER0_BASE, TIMER_A );						// Enable (Start) Timer
-		GPIOPinWrite( GPIO_PORTD_BASE, GPIO_PIN_1, 0x00 );			// Set start signal to 0 (on)
+		GPIOPinWrite( GPIO_PORTD_BASE, GPIO_PIN_1, 0x02 );			// Send a HIGH signal for 5ms. PING sensor requires high input signal to start.
 		TimerWrite1 = TimerValueGet( TIMER0_BASE, TIMER_A )			// Capture current time
 		PortD_0_A = GPIOPinRead( GPIO_PORTD_BASE, GPIO_PIN_0 );
-		SysCtlDelay( 16667 );										// SysCtlDelay holds control of cpu during wait, rather than releasing to OS.
+		SysCtlDelay( 16667 * 5 );									// SysCtlDelay holds control of cpu during wait, rather than releasing to OS.
+																	// 5ms is used as the signal time for the PING sensor.
 		TimerEndStart = TimerValueGet( TIMER0_BASE, TIMER_A );		// Capture time at start signal end
-		GPIOPinWrite( GPIO_PORTD_BASE, GPIO_PIN_1, 0x02 );			// Set start signal to 1 (off)
+		GPIOPinWrite( GPIO_PORTD_BASE, GPIO_PIN_1, 0x00 );			// Set input signal back to LOW.
 		SysCtlDelay( 2 );											// Delay 6 cycles
 		PortD_0_B = GPIOPinRead( GPIO_PORTD_BASE, GPIO_PIN_0 );
 		//UARTprintf( "PortD_0_A,_B: %d, %d\n", PortD_0_A, PortD_0_B );
-	*/
+	//
 
 		
 	
@@ -132,32 +139,35 @@ void ProxySensor( void *pvParameters ) {
 		// transition time of the data signal. A short interval indicates
 		// a zero (0) and a long interval indicates a one (1).
 		//
-		// We wait for a high-to-low transition; record the time;
-		// wait for a low-to-high transition. We read the data
+		// We wait for a LOW-TO-HIGH transition; record the time;
+		// wait for a HIGH-TO-LOW transition. We read the data
 		// on PortD<0>
 		//
 		// We will capture MaxNbrEdgeTimeSamples.
 		// Capture time at start of reading data
+		
+		// The input AND OUTPUT signals for the PING sensor are "idle" at 0 and signalling at 1. The length of
+		//  the 1 pulse returned on pin 0 is indicative of the range sensed by the proximity sensor.
 		TimerWait0 = TimerValueGet( TIMER0_BASE, TIMER_A );
 		for ( NegEdgeTimeSampleIdx = 0; NegEdgeTimeSampleIdx < MaxNbrEdgeTimeSamples; NegEdgeTimeSampleIdx++ ) {
 			//
-			// Wait for high-to-low transition
+			// Wait for LOW-TO-HIGH transition
 			//
 			// Capture time at start of reading data
 			TimerWait1 = TimerValueGet( TIMER0_BASE, TIMER_A );
 			PortD_0_C = GPIOPinRead( GPIO_PORTD_BASE, GPIO_PIN_0 );
-			while ( GPIOPinRead( GPIO_PORTD_BASE, GPIO_PIN_0 ) == 1 ) {
-			// Capture time at last read of data
-			TimeWait2 = TimerValueGet( TIMER0_BASE, TIMER_A );
+			while ( GPIOPinRead( GPIO_PORTD_BASE, GPIO_PIN_0 ) == 0 ) {
+				// Capture time at last read of data
+				TimeWait2 = TimerValueGet( TIMER0_BASE, TIMER_A );
 			}
 			//
 			// Record transition time.
 			//
 			NegEdgeTimeSamples[NegEdgeTimeSampleIdx] = TimerValueGet( TIMER0_BASE, TIMER_A );
 			//
-			// Wait for low-to-high transition.
+			// Wait for HIGH-TO-LOW transition.
 			//
-			while ( GPIOPinRead( GPIO_PORTD_BASE, GPIO_PIN_0 ) == 0 ) {
+			while ( GPIOPinRead( GPIO_PORTD_BASE, GPIO_PIN_0 ) == 1 ) {
 			}
 		}
 		
