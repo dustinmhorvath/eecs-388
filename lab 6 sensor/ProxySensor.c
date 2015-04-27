@@ -83,7 +83,7 @@ void ProxySensor( void *pvParameters ) {
 	GPIOPinWrite( GPIO_PORTD_BASE, GPIO_PIN_2, 0x04 );
 
 	long int Delay_1mS = ( configTICK_RATE_HZ ) / 1000;
-	long int Delay_5mS = ( 5 * configTICK_RATE_HZ ) / 1000;
+	long int Delay_4uS = ( 4 * configTICK_RATE_HZ ) / 1000000;
 	long int Delay_10mS = ( 10 * configTICK_RATE_HZ ) / 1000;
 	
 	//
@@ -181,18 +181,19 @@ void ProxySensor( void *pvParameters ) {
 			}
 		}
 	*/
-	
+		GPIOPinWrite( GPIO_PORTD_BASE, GPIO_PIN_1, 0x00 );
+		vTaskDelay( 5 );
 
 		TimerEnable( TIMER0_BASE, TIMER_A );								// Starts the timer counting down.
-		SysCtlDelay( 5 );													// It takes 5 cycles for the timer to start after enabling
+		vTaskDelay( 5 );													// It takes 5 cycles for the timer to start after enabling
 		GPIOPinWrite( GPIO_PORTD_BASE, GPIO_PIN_1, 0x02 );					// Begins 1 signal output.
-		SysCtlDelay( 50000 * 5  );											// Waits 5ms, the length of typical PING sensor signal.
+		SysCtlDelay( 120 ) ;													// Waits <5us, the length of typical PING sensor signal.
 		GPIOPinWrite( GPIO_PORTD_BASE, GPIO_PIN_1, 0x00 );					// After wait, pulls signal back down to zero.
 		signal_send_termination = TimerValueGet( TIMER0_BASE, TIMER_A );	// Records time that the transmit signal ended.
 		SysCtlDelay( 2 );													// Wait here for the 0 value to be written to pin 1 (output).
 
 		// Waits here for the return signal from the sensor. Sensor replies with 1's.
-		while ( GPIOPinRead( GPIO_PORTD_BASE, GPIO_PIN_0 ) == 0 ) {
+		while ( GPIOPinRead( GPIO_PORTD_BASE, GPIO_PIN_0 ) == 1 ) {
 		}
 		// Records time that low-high RX occurred. This is when the RX signal starts.
 		signal_receive_start = TimerValueGet( TIMER0_BASE, TIMER_A );
@@ -210,8 +211,7 @@ void ProxySensor( void *pvParameters ) {
 			signal_receive_start - signal_send_termination, 
 			signal_receive_end - signal_receive_start );
 			
-		vTaskDelay( 1000 );
-	
+
 
 	}
 
