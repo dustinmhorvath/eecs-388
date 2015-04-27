@@ -1,20 +1,19 @@
 //*****************************************************************************
 //
-//	FreeRTOS Demo
+//	ProxySensor
 //
 //		Blink the LED
 //
-//		Author: 		Gary J. Minden
+//		Author: 		Dustin Horvath
 //		Organization:	KU/EECS/EECS 388
-//		Date:			2013-04-19
-//		Version:		1.0
+//		Date:			4/23/15
+//		Version:		0.5
 //
-//		Purpose:		Example program that demonstrates:
-//							(1) setting up a GPIO pin (LED)
-//							(2) blinking (toggling) a LED
+//		Purpose:		Receives sensor data from PING Ultrasonic sensor
 //
 //		Notes:			Updated at KU and adapted from the TI LM3S1968 blinky
-//						and other examples.
+//						and other examples. Utilizes some code adapted from Stellaris manual
+//						and Dr. Gary Minden.
 //
 //*****************************************************************************
 // Edited by Brad Torrence 2014-4-7
@@ -28,6 +27,7 @@
 #include "driverlib/sysctl.h"
 #include "driverlib/systick.h"
 #include "driverlib/gpio.h"
+#include "driverlib/timer.h"
 #include "Drivers/rit128x96x4.h"
 #include "Drivers/uartstdio.h"
 

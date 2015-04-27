@@ -62,7 +62,7 @@ void ProxySensor( void *pvParameters ) {
 	//PortD<0> will be used to read the sensor data.
 	//
 	GPIOPinTypeGPIOInput( GPIO_PORTD_BASE, GPIO_PIN_0 );
-	GPIOPadConfigSet( GPIO_PORTD_BASE, GPIO_PIN_0, GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_STD_WPU )
+	GPIOPadConfigSet( GPIO_PORTD_BASE, GPIO_PIN_0, GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_STD_WPU );
 	
 	//
 	// Configure PortD<1> as open drain output with 2 mA drive.
@@ -72,7 +72,7 @@ void ProxySensor( void *pvParameters ) {
 	//
 	GPIOPinTypeGPIOOutput( GPIO_PORTD_BASE, GPIO_PIN_1 );
 	GPIOPadConfigSet( GPIO_PORTD_BASE, GPIO_PIN_1, GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_OD );
-	GPIOPinWrite( GPIO_PORTD_BASE, GPIO_PIN_1, 0x00 );
+	GPIOPinWrite( GPIO_PORTD_BASE, GPIO_PIN_1, 0x00 );			// Write 0 to pin, pulling the signal low.
 	
 	//
 	// Configure PortD<2> as standard output to supply power to the sensor.
@@ -82,12 +82,9 @@ void ProxySensor( void *pvParameters ) {
 	GPIOPadConfigSet( GPIO_PORTD_BASE, GPIO_PIN_2, GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_STD );
 	GPIOPinWrite( GPIO_PORTD_BASE, GPIO_PIN_2, 0x04 );
 
-	// First test: Are PortD<2..0> configured correctly and can
-	// PortD<1> pull the data signal low periodically?
-	//
-	//Compute test delays of 1 mS and 10 mS for vTaskDelay in ticks.
-	Delay_5mS = ( 5 * configTICK_RATE_HZ ) / 1000;
-	Delay_10mS = ( 10 * configTICK_RATE_HZ ) / 1000;
+	long int Delay_1mS = ( configTICK_RATE_HZ ) / 1000;
+	long int Delay_5mS = ( 5 * configTICK_RATE_HZ ) / 1000;
+	long int Delay_10mS = ( 10 * configTICK_RATE_HZ ) / 1000;
 	
 	//
 	//Configure Timer_0_A to count down continuously before resetting.
@@ -113,11 +110,13 @@ void ProxySensor( void *pvParameters ) {
 	/*
 		// PORT D TEST BLOCK
 		GPIOPinWrite( GPIO_PORTD_BASE, GPIO_PIN_1, 0x00 );		// Set signal to 0
-		vTaskDelay( Delay_5mS );								// This was changed to a longer value, as the PING sensor expects ~5ms.
+		vTaskDelay(  1 * Delay_1mS );
 		GPIOPinWrite( GPIO_PORTD_BASE, GPIO_PIN_1, 0x02 );		// Set signal to 1
-		vTaskDelay( Delay_10mS );
+		vTaskDelay(  10 * Delay_1mS );
 	*/
-	
+
+		// PORT D CONFIRMED WORKING USING OSCILLOSCOPE
+
 	/*
 		// TIMER TEST BLOCK
 		TimerLoadSet( TIMER0_BASE, TIMER_A, 50000 );				// Load initial Timer value. This has been changed to start high and count down.
@@ -135,7 +134,7 @@ void ProxySensor( void *pvParameters ) {
 	*/
 
 		
-
+	// This code block has been moderately adapted from Dr. Minden's temperature sensor code
 	/*
 		//
 		// Now the code to capture the data. We'll capture the high-to-low
@@ -183,36 +182,37 @@ void ProxySensor( void *pvParameters ) {
 		}
 	*/
 	
+
 		TimerEnable( TIMER0_BASE, TIMER_A );								// Starts the timer counting down.
-		vTaskDelay( 100 );													// I don't know if enabling the timer takes a moment, so I'm
-					// playing safe. This also gives FreeRTOS a moment to tend to other things it might want to do.
+		SysCtlDelay( 5 );													// It takes 5 cycles for the timer to start after enabling
 		GPIOPinWrite( GPIO_PORTD_BASE, GPIO_PIN_1, 0x02 );					// Begins 1 signal output.
-		SysCtlDelay( 16667 * 5 );											// Waits 5ms, the length of typical PING sensor signal.
-		GPIOPinWrite( GPIO_PORTD_BASE, GPIO_PIN_1, 0x00 );					// After wait, drops signal to 0.
+		SysCtlDelay( 50000 * 5  );											// Waits 5ms, the length of typical PING sensor signal.
+		GPIOPinWrite( GPIO_PORTD_BASE, GPIO_PIN_1, 0x00 );					// After wait, pulls signal back down to zero.
 		signal_send_termination = TimerValueGet( TIMER0_BASE, TIMER_A );	// Records time that the transmit signal ended.
 		SysCtlDelay( 2 );													// Wait here for the 0 value to be written to pin 1 (output).
 
 		// Waits here for the return signal from the sensor. Sensor replies with 1's.
 		while ( GPIOPinRead( GPIO_PORTD_BASE, GPIO_PIN_0 ) == 0 ) {
-			// Records time that low-high RX occurred. This is when the RX signal starts.
-			signal_receive_start = TimerValueGet( TIMER0_BASE, TIMER_A );
 		}
+		// Records time that low-high RX occurred. This is when the RX signal starts.
+		signal_receive_start = TimerValueGet( TIMER0_BASE, TIMER_A );
 		
+
 		// Waits here for RX signal to end. Signal drops back to 0.
 		while ( GPIOPinRead( GPIO_PORTD_BASE, GPIO_PIN_0 ) == 1 ) {
-			// Records time that high-low RX occurred. This is when the RX signal ends.
-			signal_receive_end = TimerValueGet( TIMER0_BASE, TIMER_A ) - signal_sensor_start;
 		}
+		// Records time that high-low RX occurred. This is when the RX signal ends.
+		signal_receive_end = TimerValueGet( TIMER0_BASE, TIMER_A ) - signal_receive_start;
 
-		TimerDisable( TIMER0_BASE, TIMER_A );						// Shuts the timer off so that it can be started at its load value.
+		//TimerDisable( TIMER0_BASE, TIMER_A );						// Shuts the timer off so that it can be started at its load value.
 		// Send the values over Uart to the host. The timer isn't running now so sending time shouldn't be a problem.
 		UARTprintf( "Interim, response signal : %d, %d\n", 
 			signal_receive_start - signal_send_termination, 
 			signal_receive_end - signal_receive_start );
 			
-		vTaskDelay( 100 );
-
+		vTaskDelay( 1000 );
 	
+
 	}
 
-
+}
