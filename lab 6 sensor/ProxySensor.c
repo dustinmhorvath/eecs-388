@@ -182,12 +182,12 @@ void ProxySensor( void *pvParameters ) {
 		}
 	*/
 		GPIOPinWrite( GPIO_PORTD_BASE, GPIO_PIN_1, 0x00 );
-		vTaskDelay( 5 );
+		vTaskDelay( 1 );
 
 		TimerEnable( TIMER0_BASE, TIMER_A );								// Starts the timer counting down.
-		vTaskDelay( 5 );													// It takes 5 cycles for the timer to start after enabling
+		SysCtlDelay( 5 );													// It takes 5 cycles for the timer to start after enabling
 		GPIOPinWrite( GPIO_PORTD_BASE, GPIO_PIN_1, 0x02 );					// Begins 1 signal output.
-		SysCtlDelay( 120 ) ;													// Waits <5us, the length of typical PING sensor signal.
+		SysCtlDelay( 100 ) ;													// Waits <5us, the length of typical PING sensor signal.
 		GPIOPinWrite( GPIO_PORTD_BASE, GPIO_PIN_1, 0x00 );					// After wait, pulls signal back down to zero.
 		signal_send_termination = TimerValueGet( TIMER0_BASE, TIMER_A );	// Records time that the transmit signal ended.
 		SysCtlDelay( 2 );													// Wait here for the 0 value to be written to pin 1 (output).
