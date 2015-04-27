@@ -187,7 +187,7 @@ void ProxySensor( void *pvParameters ) {
 		TimerEnable( TIMER0_BASE, TIMER_A );								// Starts the timer counting down.
 		SysCtlDelay( 5 );													// It takes 5 cycles for the timer to start after enabling
 		GPIOPinWrite( GPIO_PORTD_BASE, GPIO_PIN_1, 0x02 );					// Begins 1 signal output.
-		SysCtlDelay( 100 ) ;													// Waits <5us, the length of typical PING sensor signal.
+		SysCtlDelay( 180 ) ;													// Waits ~5us, the length of typical PING sensor signal.
 		GPIOPinWrite( GPIO_PORTD_BASE, GPIO_PIN_1, 0x00 );					// After wait, pulls signal back down to zero.
 		signal_send_termination = TimerValueGet( TIMER0_BASE, TIMER_A );	// Records time that the transmit signal ended.
 		SysCtlDelay( 2 );													// Wait here for the 0 value to be written to pin 1 (output).
@@ -207,12 +207,13 @@ void ProxySensor( void *pvParameters ) {
 
 		//TimerDisable( TIMER0_BASE, TIMER_A );						// Shuts the timer off so that it can be started at its load value.
 		// Send the values over Uart to the host. The timer isn't running now so sending time shouldn't be a problem.
-		UARTprintf( "Interim, response signal : %d, %d\n", 
-			signal_receive_start - signal_send_termination, 
-			signal_receive_end - signal_receive_start );
+
+		//UARTprintf( "Interim, response signal : %d, %d\n",
+		//	signal_receive_start - signal_send_termination,
+		//	signal_receive_end - signal_receive_start );
 			
-
-
+		UARTprintf( "signal value: %d,\n", GPIOPinRead( GPIO_PORTD_BASE, GPIO_PIN_0 ));
+		vTaskDelay(10);
 	}
 
 }
