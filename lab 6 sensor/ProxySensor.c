@@ -62,7 +62,7 @@ void ProxySensor( void *pvParameters ) {
 	//PortD<0> will be used to read the sensor data.
 	//
 	GPIOPinTypeGPIOInput( GPIO_PORTD_BASE, GPIO_PIN_0 );
-	GPIOPadConfigSet( GPIO_PORTD_BASE, GPIO_PIN_0, GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_STD_WPU );
+	GPIOPadConfigSet( GPIO_PORTD_BASE, GPIO_PIN_0, GPIO_STRENGTH_8MA, GPIO_PIN_TYPE_STD_WPU );
 	
 	//
 	// Configure PortD<1> as open drain output with 2 mA drive.
@@ -71,16 +71,16 @@ void ProxySensor( void *pvParameters ) {
 	// For the PING sensor, input 0 is idle, while signal input 1 is used to signal the start of measuring.
 	//
 	GPIOPinTypeGPIOOutput( GPIO_PORTD_BASE, GPIO_PIN_1 );
-	GPIOPadConfigSet( GPIO_PORTD_BASE, GPIO_PIN_1, GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_OD );
+	GPIOPadConfigSet( GPIO_PORTD_BASE, GPIO_PIN_1, GPIO_STRENGTH_8MA, GPIO_PIN_TYPE_OD );
 	GPIOPinWrite( GPIO_PORTD_BASE, GPIO_PIN_1, 0x00 );			// Write 0 to pin, pulling the signal low.
 	
 	//
 	// Configure PortD<2> as standard output to supply power to the sensor.
 	// Initialize PortD<2> to 1 (constant 0x04)
 	//
-	GPIOPinTypeGPIOOutput( GPIO_PORTD_BASE, GPIO_PIN_2 );
-	GPIOPadConfigSet( GPIO_PORTD_BASE, GPIO_PIN_2, GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_STD );
-	GPIOPinWrite( GPIO_PORTD_BASE, GPIO_PIN_2, 0x04 );
+	//GPIOPinTypeGPIOOutput( GPIO_PORTD_BASE, GPIO_PIN_2 );
+	//GPIOPadConfigSet( GPIO_PORTD_BASE, GPIO_PIN_2, GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_STD );
+	//GPIOPinWrite( GPIO_PORTD_BASE, GPIO_PIN_2, 0x04 );
 
 	long int Delay_1mS = ( configTICK_RATE_HZ ) / 1000;
 	long int Delay_4uS = ( 4 * configTICK_RATE_HZ ) / 1000000;
@@ -125,7 +125,7 @@ void ProxySensor( void *pvParameters ) {
 		TimerWrite1 = TimerValueGet( TIMER0_BASE, TIMER_A )			// Capture current time
 		PortD_0_A = GPIOPinRead( GPIO_PORTD_BASE, GPIO_PIN_0 );
 		SysCtlDelay( 16667 * 5 );									// SysCtlDelay holds control of cpu during wait, rather than releasing to OS.
-																	// 5ms is used as the signal time for the PING sensor.
+																	// Test using 5ms is used as the signal time for the PING sensor.
 		TimerEndStart = TimerValueGet( TIMER0_BASE, TIMER_A );		// Capture time at start signal end
 		GPIOPinWrite( GPIO_PORTD_BASE, GPIO_PIN_1, 0x00 );			// Set input signal back to LOW.
 		SysCtlDelay( 2 );											// Delay 6 cycles
@@ -134,63 +134,17 @@ void ProxySensor( void *pvParameters ) {
 	*/
 
 		
-	// This code block has been moderately adapted from Dr. Minden's temperature sensor code
-	/*
-		//
-		// Now the code to capture the data. We'll capture the high-to-low
-		// transition time of the data signal. A short interval indicates
-		// a zero (0) and a long interval indicates a one (1).
-		//
-		// We wait for a LOW-TO-HIGH transition; record the time;
-		// wait for a HIGH-TO-LOW transition. We read the data
-		// on PortD<0>
-		//
-		// We will capture MaxNbrEdgeTimeSamples.
-		// Capture time at start of reading data
-		
-		// The input AND OUTPUT signals for the PING sensor are "idle" at 0 and signalling at 1. The length of
-		//  the 1 pulse returned on pin 0 is indicative of the range sensed by the proximity sensor.
-		TimerWait0 = TimerValueGet( TIMER0_BASE, TIMER_A );
-		for ( NegEdgeTimeSampleIdx = 0; NegEdgeTimeSampleIdx < MaxNbrEdgeTimeSamples; NegEdgeTimeSampleIdx++ ) {
-			//
-			// Wait for LOW-TO-HIGH transition
-			//
-			// Capture time at start of reading data
-			TimerWait1 = TimerValueGet( TIMER0_BASE, TIMER_A );
-			PortD_0_C = GPIOPinRead( GPIO_PORTD_BASE, GPIO_PIN_0 );
-			while ( GPIOPinRead( GPIO_PORTD_BASE, GPIO_PIN_0 ) == 0 ) {
-				// Capture time at last read of data
-				TimeWait2 = TimerValueGet( TIMER0_BASE, TIMER_A );
-			}
-			//
-			// Record transition time.
-			//
-			NegEdgeTimeSamples[NegEdgeTimeSampleIdx] = TimerValueGet( TIMER0_BASE, TIMER_A );
-			//
-			// Wait for HIGH-TO-LOW transition.
-			// This marks the end of the signal transmission
-			while ( GPIOPinRead( GPIO_PORTD_BASE, GPIO_PIN_0 ) == 1 ) {
-			}
-		}
-		
-		
-		// SEND all of the recorded measurements over UART to the host. This only runs once after they've all finished.
-		if(NegEdgeTimeSampleIdx >= MaxNbrEdgeTimeSamples){
-			for( int i = 0; i < MaxNbrEdgeTimeSamples; i++){
-				UARTprintf( "Recorded times: %d, %d\n", i, NegEdgeTimeSamples[i] );
-			}
-		}
-	*/
+
 		GPIOPinWrite( GPIO_PORTD_BASE, GPIO_PIN_1, 0x00 );
-		vTaskDelay( 1 );
+		SysCtlDelay( 200 );
 
 		TimerEnable( TIMER0_BASE, TIMER_A );								// Starts the timer counting down.
 		SysCtlDelay( 5 );													// It takes 5 cycles for the timer to start after enabling
 		GPIOPinWrite( GPIO_PORTD_BASE, GPIO_PIN_1, 0x02 );					// Begins 1 signal output.
-		SysCtlDelay( 180 ) ;													// Waits ~5us, the length of typical PING sensor signal.
+		SysCtlDelay( 400 ) ;													// Waits ~5us, the length of typical PING sensor signal.
 		GPIOPinWrite( GPIO_PORTD_BASE, GPIO_PIN_1, 0x00 );					// After wait, pulls signal back down to zero.
 		signal_send_termination = TimerValueGet( TIMER0_BASE, TIMER_A );	// Records time that the transmit signal ended.
-		SysCtlDelay( 2 );													// Wait here for the 0 value to be written to pin 1 (output).
+		SysCtlDelay( 5 );													// Wait here for the 0 value to be written to pin 1 (output).
 
 		// Waits here for the return signal from the sensor. Sensor replies with 1's.
 		while ( GPIOPinRead( GPIO_PORTD_BASE, GPIO_PIN_0 ) == 1 ) {
@@ -206,14 +160,13 @@ void ProxySensor( void *pvParameters ) {
 		signal_receive_end = TimerValueGet( TIMER0_BASE, TIMER_A ) - signal_receive_start;
 
 		//TimerDisable( TIMER0_BASE, TIMER_A );						// Shuts the timer off so that it can be started at its load value.
-		// Send the values over Uart to the host. The timer isn't running now so sending time shouldn't be a problem.
 
+		// Send the values over Uart to the host. The timer isn't running now so sending time shouldn't be a problem.
 		//UARTprintf( "Interim, response signal : %d, %d\n",
 		//	signal_receive_start - signal_send_termination,
 		//	signal_receive_end - signal_receive_start );
 			
 		UARTprintf( "signal value: %d,\n", GPIOPinRead( GPIO_PORTD_BASE, GPIO_PIN_0 ));
-		vTaskDelay(10);
 	}
 
 }
