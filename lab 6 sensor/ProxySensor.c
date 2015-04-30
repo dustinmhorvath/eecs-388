@@ -11,6 +11,10 @@
 //		Notes: This program makes use of code provided by Dr. Gary Minden 
 //				in the Stellaris driver library 
 //
+//		Version		0.7
+//					Attempts using two pins for I/O were unsuccessful due to the design of
+//					the PING Ultrasonic sensor. A rework is in progress to make functional
+//					using a single pin.
 //*****************************************************************************
 //
 
@@ -71,7 +75,7 @@ void ProxySensor( void *pvParameters ) {
 	// For the PING sensor, input 0 is idle, while signal input 1 is used to signal the start of measuring.
 	//
 	GPIOPinTypeGPIOOutput( GPIO_PORTD_BASE, GPIO_PIN_1 );
-	GPIOPadConfigSet( GPIO_PORTD_BASE, GPIO_PIN_1, GPIO_STRENGTH_8MA, GPIO_PIN_TYPE_STD );
+	GPIOPadConfigSet( GPIO_PORTD_BASE, GPIO_PIN_1, GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_STD );
 	GPIOPinWrite( GPIO_PORTD_BASE, GPIO_PIN_1, 0x00 );			// Write 0 to pin, pulling the signal low.
 	
 	//
@@ -98,6 +102,9 @@ void ProxySensor( void *pvParameters ) {
 	long int signal_receive_start;
 	long int signal_receive_end;
 	
+	TimerEnable( TIMER0_BASE, TIMER_A );								// Starts the timer counting down.
+
+
 	while ( 1 ) {
 	
 	// Test blocks adapted from Dr. Minden's. These can be used to determine whether initialization has been completed
@@ -105,12 +112,13 @@ void ProxySensor( void *pvParameters ) {
 	//  the timer not having up-shot functionality, which has been changed here to periodic. Small changes have been made.
 	
 
+	/*
 		// PORT D TEST BLOCK
 		GPIOPinWrite( GPIO_PORTD_BASE, GPIO_PIN_1, 0x00 );		// Set signal to 0
 		SysCtlDelay( 70 );
 		GPIOPinWrite( GPIO_PORTD_BASE, GPIO_PIN_1, 0x02 );		// Set signal to 1
 		SysCtlDelay( 70 );
-
+	*/
 
 		// PORT D CONFIRMED WORKING USING OSCILLOSCOPE
 
@@ -129,42 +137,45 @@ void ProxySensor( void *pvParameters ) {
 		PortD_0_B = GPIOPinRead( GPIO_PORTD_BASE, GPIO_PIN_0 );
 		//UARTprintf( "PortD_0_A,_B: %d, %d\n", PortD_0_A, PortD_0_B );
 	*/
-
 		
-	/*
-		GPIOPinWrite( GPIO_PORTD_BASE, GPIO_PIN_1, 0x00 );
-		SysCtlDelay( 200 );
+		// Configure PortG[1] as OUTPUT.
+		GPIOPinTypeGPIOOutput( GPIO_PORTD_BASE, GPIO_PIN_1 );
+		GPIOPadConfigSet( GPIO_PORTD_BASE, GPIO_PIN_1, GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_STD );
 
-		TimerEnable( TIMER0_BASE, TIMER_A );								// Starts the timer counting down.
-		SysCtlDelay( 5 );													// It takes 5 cycles for the timer to start after enabling
+		GPIOPinWrite( GPIO_PORTD_BASE, GPIO_PIN_1, 0x00 );
+		SysCtlDelay( 100 );
 		GPIOPinWrite( GPIO_PORTD_BASE, GPIO_PIN_1, 0x02 );					// Begins 1 signal output.
-		SysCtlDelay( 400 ) ;													// Waits ~5us, the length of typical PING sensor signal.
+		SysCtlDelay( 60 ) ;													// Waits ~5us, the length of typical PING sensor signal.
 		GPIOPinWrite( GPIO_PORTD_BASE, GPIO_PIN_1, 0x00 );					// After wait, pulls signal back down to zero.
-		signal_send_termination = TimerValueGet( TIMER0_BASE, TIMER_A );	// Records time that the transmit signal ended.
-		SysCtlDelay( 5 );													// Wait here for the 0 value to be written to pin 1 (output).
+		SysCtlDelay( 100 );
+
+		// Configure PortG[1] as INPUT.
+		GPIOPinTypeGPIOInput( GPIO_PORTD_BASE, GPIO_PIN_1 );
+		GPIOPadConfigSet( GPIO_PORTD_BASE, GPIO_PIN_1, GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_OD );
 
 		// Waits here for the return signal from the sensor. Sensor replies with 1's.
-		while ( GPIOPinRead( GPIO_PORTD_BASE, GPIO_PIN_0 ) == 1 ) {
+		while ( GPIOPinRead( GPIO_PORTD_BASE, GPIO_PIN_1 ) == 0 ) {
+			//UARTprintf( "signal value: %d,\n", GPIOPinRead( GPIO_PORTD_BASE, GPIO_PIN_1 )); // FOR TESTING
 		}
+		TimerLoadSet( TIMER0_BASE, TIMER_A, 0xFFFF );						// Load timer to maximum
 		// Records time that low-high RX occurred. This is when the RX signal starts.
 		signal_receive_start = TimerValueGet( TIMER0_BASE, TIMER_A );
 		
 
 		// Waits here for RX signal to end. Signal drops back to 0.
-		while ( GPIOPinRead( GPIO_PORTD_BASE, GPIO_PIN_0 ) == 1 ) {
+		while ( GPIOPinRead( GPIO_PORTD_BASE, GPIO_PIN_1 ) == 1 ) {
 		}
 		// Records time that high-low RX occurred. This is when the RX signal ends.
 		signal_receive_end = TimerValueGet( TIMER0_BASE, TIMER_A ) - signal_receive_start;
 
-		//TimerDisable( TIMER0_BASE, TIMER_A );						// Shuts the timer off so that it can be started at its load value.
 
-		// Send the values over Uart to the host. The timer isn't running now so sending time shouldn't be a problem.
+		// Send time values over Uart.
 		//UARTprintf( "Interim, response signal : %d, %d\n",
 		//	signal_receive_start - signal_send_termination,
 		//	signal_receive_end - signal_receive_start );
 			
-		UARTprintf( "signal value: %d,\n", GPIOPinRead( GPIO_PORTD_BASE, GPIO_PIN_0 ));
-	*/
+		UARTprintf( "signal value: %d,\n", GPIOPinRead( GPIO_PORTD_BASE, GPIO_PIN_1 ));
+
 
 	}
 
