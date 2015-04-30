@@ -54,10 +54,6 @@ void ProxySensor( void *pvParameters ) {
 	//*****************************************************************************
 	//
 	// Constants and Variables
-	#define NbrEdgeTimeSamples 100
-	#define MaxNbrEdgeTimeSamples 10
-	long int NegEdgeTimeSamples[NbrEdgeTimeSamples];
-	long int NegEdgeTimeSampleIdx;
 
 	// Enable GPIO Port D
 	SysCtlPeripheralEnable( SYSCTL_PERIPH_GPIOD );
