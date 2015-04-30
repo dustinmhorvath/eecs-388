@@ -11,7 +11,7 @@
 //		Notes: This program makes use of code provided by Dr. Gary Minden 
 //				in the Stellaris driver library 
 //
-//		Version		0.7
+//		Version		0.78
 //					Attempts using two pins for I/O were unsuccessful due to the design of
 //					the PING Ultrasonic sensor. A rework is in progress to make functional
 //					using a single pin.
