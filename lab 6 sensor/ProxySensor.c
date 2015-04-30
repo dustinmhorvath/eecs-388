@@ -61,8 +61,8 @@ void ProxySensor( void *pvParameters ) {
 	//Configure PortD<0> as input with weak-pull-up.
 	//PortD<0> will be used to read the sensor data.
 	//
-	GPIOPinTypeGPIOInput( GPIO_PORTD_BASE, GPIO_PIN_0 );
-	GPIOPadConfigSet( GPIO_PORTD_BASE, GPIO_PIN_0, GPIO_STRENGTH_8MA, GPIO_PIN_TYPE_STD_WPU );
+	//GPIOPinTypeGPIOInput( GPIO_PORTD_BASE, GPIO_PIN_0 );
+	//GPIOPadConfigSet( GPIO_PORTD_BASE, GPIO_PIN_0, GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_STD_WPU );
 	
 	//
 	// Configure PortD<1> as open drain output with 2 mA drive.
@@ -71,7 +71,7 @@ void ProxySensor( void *pvParameters ) {
 	// For the PING sensor, input 0 is idle, while signal input 1 is used to signal the start of measuring.
 	//
 	GPIOPinTypeGPIOOutput( GPIO_PORTD_BASE, GPIO_PIN_1 );
-	GPIOPadConfigSet( GPIO_PORTD_BASE, GPIO_PIN_1, GPIO_STRENGTH_8MA, GPIO_PIN_TYPE_OD );
+	GPIOPadConfigSet( GPIO_PORTD_BASE, GPIO_PIN_1, GPIO_STRENGTH_8MA, GPIO_PIN_TYPE_STD );
 	GPIOPinWrite( GPIO_PORTD_BASE, GPIO_PIN_1, 0x00 );			// Write 0 to pin, pulling the signal low.
 	
 	//
@@ -82,9 +82,6 @@ void ProxySensor( void *pvParameters ) {
 	//GPIOPadConfigSet( GPIO_PORTD_BASE, GPIO_PIN_2, GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_STD );
 	//GPIOPinWrite( GPIO_PORTD_BASE, GPIO_PIN_2, 0x04 );
 
-	long int Delay_1mS = ( configTICK_RATE_HZ ) / 1000;
-	long int Delay_4uS = ( 4 * configTICK_RATE_HZ ) / 1000000;
-	long int Delay_10mS = ( 10 * configTICK_RATE_HZ ) / 1000;
 	
 	//
 	//Configure Timer_0_A to count down continuously before resetting.
@@ -107,13 +104,13 @@ void ProxySensor( void *pvParameters ) {
 	//  successfully, and to check if the hardware is functioning by design. One of the problems he ran into involved
 	//  the timer not having up-shot functionality, which has been changed here to periodic. Small changes have been made.
 	
-	/*
+
 		// PORT D TEST BLOCK
 		GPIOPinWrite( GPIO_PORTD_BASE, GPIO_PIN_1, 0x00 );		// Set signal to 0
-		vTaskDelay(  1 * Delay_1mS );
+		SysCtlDelay( 70 );
 		GPIOPinWrite( GPIO_PORTD_BASE, GPIO_PIN_1, 0x02 );		// Set signal to 1
-		vTaskDelay(  10 * Delay_1mS );
-	*/
+		SysCtlDelay( 70 );
+
 
 		// PORT D CONFIRMED WORKING USING OSCILLOSCOPE
 
@@ -134,7 +131,7 @@ void ProxySensor( void *pvParameters ) {
 	*/
 
 		
-
+	/*
 		GPIOPinWrite( GPIO_PORTD_BASE, GPIO_PIN_1, 0x00 );
 		SysCtlDelay( 200 );
 
@@ -167,6 +164,8 @@ void ProxySensor( void *pvParameters ) {
 		//	signal_receive_end - signal_receive_start );
 			
 		UARTprintf( "signal value: %d,\n", GPIOPinRead( GPIO_PORTD_BASE, GPIO_PIN_0 ));
+	*/
+
 	}
 
 }
