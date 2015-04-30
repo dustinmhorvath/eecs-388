@@ -61,13 +61,7 @@ void ProxySensor( void *pvParameters ) {
 
 	// Enable GPIO Port D
 	SysCtlPeripheralEnable( SYSCTL_PERIPH_GPIOD );
-	//
-	//Configure PortD<0> as input with weak-pull-up.
-	//PortD<0> will be used to read the sensor data.
-	//
-	//GPIOPinTypeGPIOInput( GPIO_PORTD_BASE, GPIO_PIN_0 );
-	//GPIOPadConfigSet( GPIO_PORTD_BASE, GPIO_PIN_0, GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_STD_WPU );
-	
+
 	//
 	// Configure PortD<1> as open drain output with 2 mA drive.
 	// PortD<1> will be used to initiate a measurement.
@@ -77,16 +71,7 @@ void ProxySensor( void *pvParameters ) {
 	GPIOPinTypeGPIOOutput( GPIO_PORTD_BASE, GPIO_PIN_1 );
 	GPIOPadConfigSet( GPIO_PORTD_BASE, GPIO_PIN_1, GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_STD );
 	GPIOPinWrite( GPIO_PORTD_BASE, GPIO_PIN_1, 0x00 );			// Write 0 to pin, pulling the signal low.
-	
-	//
-	// Configure PortD<2> as standard output to supply power to the sensor.
-	// Initialize PortD<2> to 1 (constant 0x04)
-	//
-	//GPIOPinTypeGPIOOutput( GPIO_PORTD_BASE, GPIO_PIN_2 );
-	//GPIOPadConfigSet( GPIO_PORTD_BASE, GPIO_PIN_2, GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_STD );
-	//GPIOPinWrite( GPIO_PORTD_BASE, GPIO_PIN_2, 0x04 );
 
-	
 	//
 	//Configure Timer_0_A to count down continuously before resetting.
 	//Timer_0_A will be enabled after a start pulse is generated and
@@ -97,16 +82,16 @@ void ProxySensor( void *pvParameters ) {
 	TimerConfigure( TIMER0_BASE, TIMER_CFG_SPLIT_PAIR | TIMER_CFG_A_PERIODIC );
 	TimerLoadSet( TIMER0_BASE, TIMER_A, 50000 );
 	TimerPrescaleSet( TIMER0_BASE, TIMER_A, 9 );
-	
+
 	long int signal_send_termination;
 	long int signal_receive_start;
 	long int signal_receive_end;
-	
+
 	TimerEnable( TIMER0_BASE, TIMER_A );								// Starts the timer counting down.
 
 
 	while ( 1 ) {
-	
+
 	// Test blocks adapted from Dr. Minden's. These can be used to determine whether initialization has been completed
 	//  successfully, and to check if the hardware is functioning by design. One of the problems he ran into involved
 	//  the timer not having up-shot functionality, which has been changed here to periodic. Small changes have been made.
@@ -137,7 +122,7 @@ void ProxySensor( void *pvParameters ) {
 		PortD_0_B = GPIOPinRead( GPIO_PORTD_BASE, GPIO_PIN_0 );
 		//UARTprintf( "PortD_0_A,_B: %d, %d\n", PortD_0_A, PortD_0_B );
 	*/
-		
+
 		// Configure PortG[1] as OUTPUT.
 		GPIOPinTypeGPIOOutput( GPIO_PORTD_BASE, GPIO_PIN_1 );
 		GPIOPadConfigSet( GPIO_PORTD_BASE, GPIO_PIN_1, GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_STD );
@@ -160,7 +145,7 @@ void ProxySensor( void *pvParameters ) {
 		TimerLoadSet( TIMER0_BASE, TIMER_A, 0xFFFF );						// Load timer to maximum
 		// Records time that low-high RX occurred. This is when the RX signal starts.
 		signal_receive_start = TimerValueGet( TIMER0_BASE, TIMER_A );
-		
+
 
 		// Waits here for RX signal to end. Signal drops back to 0.
 		while ( GPIOPinRead( GPIO_PORTD_BASE, GPIO_PIN_1 ) == 1 ) {
@@ -173,7 +158,7 @@ void ProxySensor( void *pvParameters ) {
 		//UARTprintf( "Interim, response signal : %d, %d\n",
 		//	signal_receive_start - signal_send_termination,
 		//	signal_receive_end - signal_receive_start );
-			
+
 		UARTprintf( "signal value: %d,\n", GPIOPinRead( GPIO_PORTD_BASE, GPIO_PIN_1 ));
 
 
